@@ -1,0 +1,180 @@
+<!DOCTYPE html> {% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'crud_app/css/bootstrap.css' %}">
+    <title>Django Ajax CRUD</title>
+</head>
+
+<body>
+    <div class="container-mt-5">
+        <h2 class="text-center-alert alert-danger">Django based crud app</h2>
+        <div class="row">
+            <div class="col-sm-4">
+                <h4 class="text-center alert alert-info">Add/Update Student</h4>
+                <form action="" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="stuid" id="stuid"> {{form.as_p}}
+                    <input type="button" class="btn btn-success" id="btnsave" value="Save">
+                </form>
+            </div>
+            <div class="col-sm-7">
+                <h4 class="text-center alert alert-info">Show Student Data</h4>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="display: none;">ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Password</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for st in stu %}
+                        <tr>
+                            <td style="display: none;">{{st.id}}</td>
+                            <td>{{st.name}}</td>
+                            <td>{{st.email}}</td>
+                            <td>{{st.password}}</td>
+                            <td>
+                                <input type="button" data-sid="{{st.id}}" class="btn btn-warning btn-sm" id="btn-edit" value="Edit">
+
+                                <input type="button" data-sid="{{st.id}}" class="btn btn-danger btn-sm" id="btn-del" value="Delete">
+                            </td>
+                        </tr>
+
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="{% static 'crud_app/js/jquery.js' %}"></script>
+    <script src="{% static 'crud_app/js/bootstrap.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        // insert data into db from form
+        $("#btnsave").click(function() {
+            console.log("save Button clicked")
+                // fetch value from entry box(input field)
+            let nm = $("#nameid").val();
+            let em = $("#emailid").val();
+            let pw = $("#passwordid").val();
+
+            if (nm == '') {
+                console.log("Please enter Name")
+            } else if (em == '') {
+                console.log("Please enter Email")
+            } else if (pw == '') {
+                console.log("Please enter Password")
+            } else {
+                console.log(nm, em, pw)
+
+                if ($("#stuid").val()) {
+                    mydata = {
+                        "stuid": $("#stuid").val(),
+                        "name": nm,
+                        "email": em,
+                        "password": pw,
+                        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                    }
+                } else {
+                    mydata = {
+                        "name": nm,
+                        "email": em,
+                        "password": pw,
+                        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                    }
+                }
+
+
+                $.ajax({
+                    url: "{% url 'save' %}",
+                    method: "POST",
+                    data: mydata,
+
+                    success: function(data) {
+                        if (data.status == "saved") {
+                            console.log("form submitted successfully")
+                            console.log(data.student_data)
+                            $("form")[0].reset();
+                        }
+                        if (data.status == "failed") {
+                            console.log("failed")
+                        }
+                    },
+                });
+            }
+        });
+
+        //delete data 
+        // fetch id
+        $("tbody").on("click", "#btn-del", function() {
+            console.log("delete button")
+            let id = $(this).attr("data-sid")
+            console.log(id)
+            mydata = {
+                "sid": id,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            }
+            mythis = this
+
+            // send id to backend
+            $.ajax({
+                url: "{% url 'delete' %}",
+                method: "POST",
+                data: mydata,
+
+                success: function(data) {
+                    if (data.status == 'success') {
+                        console.log(data);
+                        $(mythis).closest("tr").fadeOut();
+                    }
+                },
+            })
+        })
+
+        //edit data 
+        $("tbody").on("click", "#btn-edit", function() {
+            console.log("edit button")
+            let id = $(this).attr("data-sid")
+            console.log(id)
+
+            mydata = {
+                "sid": id,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            }
+
+            // send id to backend
+            $.ajax({
+                url: "{% url 'edit' %}",
+                method: "POST",
+                data: mydata,
+
+                success: function(data) {
+                    console.log(data);
+
+                    // show got data in form
+                    $("#stuid").val(data.id);
+                    $("#nameid").val(data.name);
+                    $("#emailid").val(data.email);
+                    $("#passwordid").val(data.password);
+                },
+            })
+
+
+        })
+    </script>
+
+
+</body>
+
+</html>
